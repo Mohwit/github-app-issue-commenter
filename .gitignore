@@ -46,3 +46,7 @@ Thumbs.db
 # Private key files
 *.pem
 private-key.pem
+
+# Database (if you add one later)
+*.db
+*.sqlite

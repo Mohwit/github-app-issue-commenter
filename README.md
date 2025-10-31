@@ -9,12 +9,14 @@ When someone creates a new issue in your repository, this bot automatically:
 - Detects the new issue via GitHub webhooks
 - Posts a friendly comment with PR guidelines
 - Helps contributors understand how to submit quality pull requests
+- **NEW!** 🎨 View all issues in a beautiful web dashboard
 
 ## 🏗️ Architecture
 
 - **Framework**: FastAPI (Python)
 - **GitHub Integration**: PyGithub + PyJWT
 - **Authentication**: GitHub App with webhook validation
+- **UI**: Beautiful web dashboard with real-time updates
 - **Deployment**: Can be deployed to any platform (Railway, Render, Heroku, etc.)
 
 ## 🚀 Quick Start
@@ -130,6 +132,45 @@ Copy the `https://` URL from ngrok and:
 1. Go to one of your repositories where the app is installed
 2. Create a new issue
 3. Within seconds, you should see a comment from your bot with PR guidelines! 🎉
+4. **View the Dashboard**: Open `http://localhost:8000` in your browser to see the issue appear!
+
+## 🎨 Web Dashboard
+
+Your app includes a beautiful web dashboard to monitor all new issues in real-time!
+
+### Features
+
+- 📊 **Real-Time Monitoring** - See all new issues as they're created
+- 🔍 **Search & Filter** - Find issues by title, repo, or user
+- 📅 **Time Filters** - View today's issues, this week, or all
+- 📈 **Statistics** - Track total issues and active repositories
+- 🎯 **Direct Links** - Click to view issues on GitHub
+- 📱 **Responsive Design** - Works on mobile, tablet, and desktop
+
+### Accessing the Dashboard
+
+**Local Development:**
+```
+http://localhost:8000
+```
+
+**Production:**
+```
+https://your-app.railway.app
+https://your-app.onrender.com
+https://your-app.fly.dev
+```
+
+### Dashboard API
+
+Get issues programmatically:
+```bash
+curl https://your-app.com/api/issues
+```
+
+**Note**: Issues are stored in-memory (last 100 issues). For persistent storage, see [UI_GUIDE.md](UI_GUIDE.md).
+
+For more details, see [UI_GUIDE.md](UI_GUIDE.md).
 
 ## 🔧 Customization
 
@@ -249,11 +290,12 @@ curl http://localhost:8000/health
 
 ## 📚 API Endpoints
 
-| Endpoint   | Method | Description                    |
-| ---------- | ------ | ------------------------------ |
-| `/`        | GET    | Root endpoint with app info    |
-| `/health`  | GET    | Health check for monitoring    |
-| `/webhook` | POST   | Receives GitHub webhook events |
+| Endpoint      | Method | Description                        |
+| ------------- | ------ | ---------------------------------- |
+| `/`           | GET    | **Web Dashboard** - View all issues|
+| `/health`     | GET    | Health check for monitoring        |
+| `/api/issues` | GET    | Get all issues as JSON             |
+| `/webhook`    | POST   | Receives GitHub webhook events     |
 
 ## 🐛 Troubleshooting
 

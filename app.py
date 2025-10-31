@@ -3,8 +3,12 @@ import hmac
 import hashlib
 import jwt
 import time
+from datetime import datetime
 from fastapi import FastAPI, Request, HTTPException, Header
-from typing import Optional
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from typing import Optional, List, Dict
 from github import Github, GithubIntegration
 from dotenv import load_dotenv
 
@@ -12,6 +16,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI(title="GitHub Issue Commenter Bot")
+
+# Setup templates and static files
+templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# In-memory storage for issues (in production, use a database)
+recent_issues: List[Dict] = []
+MAX_STORED_ISSUES = 100
 
 # GitHub App Configuration
 APP_ID = os.getenv("GITHUB_APP_ID")
@@ -85,20 +97,29 @@ def get_installation_access_token(installation_id: int) -> str:
     return auth.token
 
 
-@app.get("/")
-async def root():
-    """Health check endpoint."""
-    return {
-        "status": "ok",
-        "app": "GitHub Issue Commenter Bot",
-        "message": "Server is running"
-    }
+@app.get("/", response_class=HTMLResponse)
+async def root(request: Request):
+    """Dashboard - shows all recent issues."""
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "total_issues": len(recent_issues),
+        "app_name": "GitHub Issue Commenter Bot"
+    })
 
 
 @app.get("/health")
 async def health():
     """Health check endpoint for monitoring."""
     return {"status": "healthy"}
+
+
+@app.get("/api/issues")
+async def get_issues():
+    """API endpoint to get all recent issues."""
+    return {
+        "total": len(recent_issues),
+        "issues": recent_issues
+    }
 
 
 @app.post("/webhook")
@@ -147,6 +168,29 @@ async def webhook(
                 g = Github(access_token)
                 repo = g.get_repo(repo_full_name)
                 issue_obj = repo.get_issue(issue_number)
+                
+                # Store issue data for dashboard
+                # Handle None body (issues without description)
+                issue_body = issue.get("body") or ""
+                truncated_body = issue_body[:200] + "..." if len(issue_body) > 200 else issue_body
+                
+                issue_data = {
+                    "number": issue_number,
+                    "title": issue.get("title"),
+                    "body": truncated_body,
+                    "repository": repo_full_name,
+                    "user": issue.get("user", {}).get("login"),
+                    "user_avatar": issue.get("user", {}).get("avatar_url"),
+                    "url": issue.get("html_url"),
+                    "created_at": issue.get("created_at"),
+                    "timestamp": datetime.now().isoformat(),
+                    "labels": [label.get("name") for label in issue.get("labels", [])]
+                }
+                
+                # Add to recent issues (keep only last MAX_STORED_ISSUES)
+                recent_issues.insert(0, issue_data)
+                if len(recent_issues) > MAX_STORED_ISSUES:
+                    recent_issues.pop()
                 
                 # Post the comment
                 issue_obj.create_comment(PR_GUIDELINES)
